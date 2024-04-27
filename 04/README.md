@@ -35,6 +35,19 @@
   ```
 - 파드 생성: ```$ kubectl apply -f sample-pod.yaml```
 - 생성된 파드 확인: ```$ kubectl get pods```
+- 두개의 컨테이너를 가지는 경우:
+  ```
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: sample-2pod
+  spec:
+    containers:
+    - name: nginx-container
+      image: nginx:1.16
+    - name: redis-container
+      image: redis:3.2
+    ```
   
 
 ## 레플리카 셋
