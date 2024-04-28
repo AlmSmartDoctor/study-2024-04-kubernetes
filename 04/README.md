@@ -31,8 +31,8 @@
     - name: nginx-container
       image: nginx:1.16
   ```
-- 파드 생성: ```$ kubectl apply -f sample-pod.yaml```
-- 생성된 파드 확인: ```$ kubectl get pods```
+- 파드 생성: ```kubectl apply -f sample-pod.yaml```
+- 생성된 파드 확인: ```kubectl get pods```
   - 파드 이름, 컨테이너 개수(n/n), 상태 등 표시
 - 두개의 컨테이너를 가지는 경우:
   ```
@@ -51,7 +51,8 @@
   - 위의 생성된 파드를 확인할 때 준비된 컨테이너 수가 에러가 안났을 때보다 적도록 뜨고, 상태가 Running이 아닌 Error로 뜬다
 
 ### 명령어 실행
-- 파드 
+- 파드 컨테이너로 로그인: ```kubectl exec -it sample-pod -- /bin/bash```
+  - 컨테이너에 직접 로그인하는건 아니고, 가상 터미널을 만들어 /bin/sh를 실행하는 것
   
 
 ## 레플리카 셋
