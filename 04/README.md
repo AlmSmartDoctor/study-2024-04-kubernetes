@@ -99,12 +99,49 @@
 
 ### 네트워크 관련 설정
 - 호스트의 네트워크 설정 사용하기
+  - 파드들에는 기본적으로 외부에서는 확인할 수 없는 kubenetes 노드와는 다른 IP 주소값이 설정된다
+  - ```spec.hostNetwork: true```로 호스트와 같은 네트워크 구성으로 파드를 가동시킬 수 있다
+    - 사용할 port 번호를 명시해야 한다
+      - containers 밑에 ports 항목에 hostPort와 containerPort값을 명시해줘야 하고 두 값이 같아야 한다
+      - 각 파드의 hostIP, hostPort, portocol값의 세트는 고유해야 하기에 이 경우 파드 설정에 제한이 생길 수 있다
+    - ```NodePort```를 사용하는게 권장된다
 - DNS 서버 설정: spec.dnsPolicy값으로 설정한다
   - ClusterFirst
-  - None
+    - 기본값
+    - 클러스터 내부 DNS 서버에 문의 -> 여기서 해석 불가능할 때 업스트림 서버에 문의
+    - 클러스터 내부의 dns 설정 파일: ```etc/resolv.conf```
+  - None: 클러스터 외부의 DNS 서버 사용
+    - spec.dnsConfig에 사용하고자 하는 값을 작성
+    - ```
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: sample-dnspolicy-none
+      spec:
+        dnsPolicy: None
+        dnsConfig:
+          nameservers:
+          - 8.8.8.8
+          - 8.8.4.4
+          searches:
+          - example.com
+          options:
+          - name: ndots
+            value: "5"
+          containers:
+        - name: nginx-container
+          image: nginx:1.16
+      ```
+    - 설정시 etc/resolv.conf 값이 덮어쓰여지고 클러스터 내부 DNS는 사용 불가능하다
   - Default
+    - spec.dnsPolicy의 기본값이 아니다
+    - 파드를 호스트하는 쿠버네티스 노드의 DNS 데이터를 그대로 가져온다
+    - 설정시 etc/resolv.conf 값이 덮어쓰여지고 클러스터 내부 DNS는 사용 불가능하다
   - ClusterFirstWithHostNet
+    - 위의 hostNetwork 값을 true로 활성화한 경우에 DNS는 클러스터 내부의 DNS를 참조하고 싶을 때 사용한다
+    - hostNetwork 사용시에는 기본적으로 spec.dnsPolicy의 기본값인 ClusterFirst가 아니라 호스트의 DNS 설정을 참조한다
 - 정적 호스트명
+  - 정적 호스트명: DNS 서버를 참조하기 전에 /etc/hosts 파일을 확인해서 해당 도메인이 명시되어 있으면 DNS 서버 대신 해당 파일의 값을 가져온다
   - spec.hostAliases: 파드 안의 모든 컨테이너들의 /etc/hosts 파일에 값을 추가할 수 있다
   ```
   apiVersion: v1
