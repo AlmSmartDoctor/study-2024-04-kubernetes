@@ -52,8 +52,49 @@
 
 ### 명령어 실행
 - 파드 컨테이너로 로그인: ```kubectl exec -it sample-pod -- /bin/bash```
-  - 컨테이너에 직접 로그인하는건 아니고, 가상 터미널을 만들어 /bin/sh를 실행하는 것
+  - 컨테이너에 직접 SSH로 로그인하는건 아니고, 가상 터미널을 만들어 /bin/sh를 실행하는 것
+- 컨테이너 내부에서 정보 확인
+  ```
+  # 필요한 패키지 설치
+  apt update && apt -y install iproute2 procps
   
+  # IP 주소 확인
+  ip a | grep "inet "
+
+  # 해당 컨테이너가 통신하는 포트 확인
+  ss -napt | grep LISTEN
+
+  # 프로세스 목록 확인
+  ps aux
+
+  # 파드 안에서 ls 실행하기
+  kubectl exec -it sample-pod -- /bin/ls
+  kubectl exec -it sample-2pod -c nginx-container -- /bin/ls # 특정 컨테이너만 지정해서 실행하기
+  kubectl exec -it sample-pod -- /bin/ls --all --classify # 기타 옵션들 추가
+  kubectl exec -it sample-pod -- /bin/bash -c "ls --all --classify | grep lib" # 특정 문자열을 포함하는 경우
+  ```
+- command/args: 도커 이미지에 설정된 ENTRYPOINT와 CMD명령어를 덮어씌우고 대신 실행된다.
+  - ```
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: sample-pod
+    spec:
+      containers:
+     - name: nginx-container
+        image: nginx:1.16
+        command: ["/bin/sleep"]
+        args: ["3600"]
+    ```
+  - 이러면 컨테이너를 실행할 때 ```/bin/sleep 3600```이 실행된다
+
+### 파드명 제한
+- metadata의 name 값을 파드를 생성할때 검사해서 규칙에 맞지 않을 경우 생성에 실패한다.
+  - 영어 소문자와 숫자
+  - '-', '.'
+  - 시작과 끝은 영어 소문자만 가능
+
+### 파드 기동
 
 ## 레플리카 셋
 
