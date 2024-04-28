@@ -21,7 +21,7 @@
 
 ### 파드 생성
 - 파드 매니페스트
-- ```
+  ```
   apiVersion: v1
   kind: Pod
   metadata:
@@ -99,8 +99,27 @@
 
 ### 네트워크 관련 설정
 - 호스트의 네트워크 설정 사용하기
-- DNS 서버 설정
+- DNS 서버 설정: spec.dnsPolicy값으로 설정한다
+  - ClusterFirst
+  - None
+  - Default
+  - ClusterFirstWithHostNet
 - 정적 호스트명
+  - spec.hostAliases: 파드 안의 모든 컨테이너들의 /etc/hosts 파일에 값을 추가할 수 있다
+  ```
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: sample-pod
+  spec:
+    containers:
+    - name: nginx-container
+      image: nginx:1.16
+    hostAliases:
+    - ip: 8.8.8.8
+      hostnames:
+      - google-dns
+  ```
 
 ## 레플리카 셋
 
