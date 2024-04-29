@@ -158,7 +158,30 @@
       - google-dns
   ```
 
-## 레플리카 셋
+## 레플리카 셋/레플리케이션 컨트롤러
+- 파드의 복제를 생성하고 지정된 파드의 개수를 유지하는 역할을 한다
+- 레플리케이션 컨트롤러: 과거의 유산
+- spec.replicas: 총 복제할 파드의 개수
+- spec.template: 복제할 파드의 매니페스트
+  ```
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: sample-rs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.16
+  ```
 
 ## 디플로이먼트
 
