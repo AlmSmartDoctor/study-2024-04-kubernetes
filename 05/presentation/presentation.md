@@ -108,7 +108,7 @@ spec:
           image: nginx:1.16
 ```
 
-# 5.6. 스테이트풀셀
+# 5.6. 스테이트풀셋
 
 - db와 같이 stateful한 워크로드에 사용하기 위한 레플리카셋의 특수한 형태
 
@@ -253,3 +253,222 @@ spec:
 > ![alt text](image-18.png)
 
 # 5.7. 잡
+
+## 5.7.1. 잡의 용도
+
+잡의 경우 레플리카셋고 다르게 기동 중인 파드의 정지가 작업을 끝내고 정상종료되는 것을 의미한다. 레플리카셋은 정상 종료 횟수를 카운트할 수 없기 때문에 배치 작업은 잡을 사용하자.
+
+## 5.7.2. 잡 생성
+
+> 쿠버네티스가 uuid를 자동으로 생성하기 때문에 selector와 labels를 지정하지 않는 것을 권장
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample.job
+  namespace: default
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 10
+  template:
+    spec:
+      containers:
+        - name: tools-container
+          image: amsy810/tools:v2.0
+          command: ["sleep"]
+          args: ["60"]
+      restartPolicy: Never
+```
+
+> 잡의 경우 Ready 상태의 파드 수가 아닌 정상종료한 completions 상태의 파드 수를 표시함
+> ![alt text](image-19.png)
+
+## 5.7.3. restartPolicy에 따른 동작 차이
+
+- spec.template.spec.restartPolicy
+  - onFailure : 파드 장애 -> 동일한 파드로 잡 재시작
+  - Never : 파드 장애 -> 신규 파드 생성
+
+### 5.7.3.1. OnFailure
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample-job-onfailure-restart
+  namespace: default
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 10
+  template:
+    spec:
+      containers:
+        - name: tools-container
+          image: amsy810/tools:v2.0
+          command: ["sh", "-c"]
+          args: ["$(sleep 3600)"]
+      restartPolicy: OnFailure
+```
+
+> 파드의 잡 실행 실패 후 동일한 파드로 잡 재시작
+> ![alt text](image-21.png)
+
+- 동일한 파드가 재시작하기 때문에 ip가 변경되지는 않지만 영구 볼륨 또는 노드의 파일 시스템의 영역(hostPath)에 파드의 볼륨을 마운트하지 않은 경우 데이터가 유실된다.
+  - 책 표현이 중의적인데 노드의 영역을 마운트하는 것이 아니라 파드의 볼륨을 해당 파드를 호스팅하는 노드의 파일 시스템 내 특정 영역에 마운트 하는 것
+
+### 5.7.3.2. Never
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample-job-never-restart
+  namespace: default
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 10
+  template:
+    spec:
+      containers:
+        - name: tools-container
+          image: amsy810/tools:v2.0
+          command: ["sh", "-c"]
+          args: ["$(sleep 3600)"]
+      restartPolicy: Never
+```
+
+> 파드의 잡 실행 실패 후 새로운 파드를 생성 하여 잡 재시도
+> ![alt text](image-20.png)
+
+## 5.7.4. 태스크와 작업 큐 병렬 실행
+
+| 워크로드                    | completions | parallelism | backoffLimit |
+| --------------------------- | ----------- | ----------- | ------------ |
+| 1회만 실행하는 태스크       | 1           | 1           | 0            |
+| N개 병렬 실행 태스크        | M           | N           | P            |
+| 한 개씩 실행하는 작업 큐    | 미지정      | 1           | P            |
+| N개 병렬로 실행하는 작업 큐 | 미지정      | N           | P            |
+
+**매니페스트 수정**
+
+- completions
+  - immutable
+- parallelism
+  - mutable
+- backoffLimit
+  - mutable
+
+### 5.7.4.1. One Shot Task: 1회만 실행하는 태스크
+
+| completions | parallelism | backoffLimit |
+| ----------- | ----------- | ------------ |
+| 1           | 1           | 0            |
+
+성공 유무 관계없이 1회만 실행됨
+
+### 5.7.4.2. Multi Task: N개 병렬로 실행시키는 태스크
+
+| completions | parallelism | backoffLimit |
+| ----------- | ----------- | ------------ |
+| M           | N           | P            |
+
+- M=5 & N=3 & P=5
+  - 파드 3개 생성 -> 3개 정상 종료 -> 파드 2개 생성 -> 2개 정상 종료
+  - 3개 정상 종료 후 파드 3개가 재생성되지 않고 남은 성공 횟수에 맞춰서 생성된다.
+
+### 5.7.4.3. Multi WorkQueue: N개 병렬로 실행되는 작업 큐
+
+- 여러 개의 파드를 하나의 잡을 처리하기 위해 병렬적으로 실행
+- 하나라도 정상 종료하면 그 이후에는 파드를 생성하지 않음
+- 정상 종료하는 파드가 나왔을 때 이미 실행 중인 파드는 강제로 종료하지 않고 개별 처리를 정상 종료할 때까지 그대로 동작
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample-job-multi-workqueue
+spec:
+  # default completions: 1
+  parallelism: 3
+  backoffLimit: 1
+  template:
+    spec:
+      containers:
+        - name: tools-container
+          image: amsy810/tools:v2.0
+          command: ["sleep"]
+          args: ["20"]
+      restartPolicy: Never
+```
+
+![alt text](image-23.png)
+
+### 5.7.4.4. Single WorkQueue: 한 개씩 실행하는 작업 큐
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample-job-single-workqueue
+spec:
+  # default completions: 1
+  parallelism: 1
+  backoffLimit: 1
+  template:
+    spec:
+      containers:
+        - name: tools-container
+          image: amsy810/tools:v2.0
+          command: ["sleep"]
+          args: ["20"]
+      restartPolicy: Never
+```
+
+> 1개 정상 종료할 때까지 파드 1개씩 잡 실행
+> ![alt text](image-24.png)
+
+**parallelism을 증가시켜 multi work queue로 변경 가능**
+![alt text](image-25.png)
+
+## 5.7.5. 일정 기간 후 잡 삭제
+
+잡은 종료 후 삭제되지 않고 계속 남아 있는 리소스.
+`spec.ttlSecondsAfterFinished`를 설정하여 잡이 종료된 후 일정 시간 후 삭제되도록 설정 가능.
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample-job-ttl
+spec:
+  ttlSecondsAfterFinished: 20
+  template:
+    spec:
+      containers:
+        - name: tools-container
+          image: amsy810/tools:v2.0
+          command: ["sleep"]
+          args: ["10"]
+      restartPolicy: Never
+```
+
+> 3(apply) + 10(job) + 20(ttl)
+> ![alt text](image-22.png)
+
+## 5.7.6. 매니페스트를 사용하지 않고 잡을 생성
+
+```shell
+kubectl create job sample-job-by-cli --image=amsy810/tools:v2.0 -- sleep 30
+```
+
+**크론잡을 기반으로 잡 생성**
+
+```shell
+kubectl create jobo sample-job-from-cronjob --from cronjob/sample-cronjob
+```
+
+# 5.8. 크론잡
