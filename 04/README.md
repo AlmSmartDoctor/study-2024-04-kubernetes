@@ -339,8 +339,6 @@
     replicaset.apps/flask-example-app-959c5f88d 1 1 1 5s
     ```
 
-```
-
 - 기본 레이블: app=flask-example-app
 - 간단한 작업에 사용: 사용된 이미지 확인 등
 
@@ -388,7 +386,5 @@
 
 $ kubectl scale deployment sample-deployment --replicas=5
 deployment./apps/sample-deployment scaled
-
-```
 
 ```
