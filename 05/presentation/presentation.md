@@ -472,3 +472,84 @@ kubectl create jobo sample-job-from-cronjob --from cronjob/sample-cronjob
 ```
 
 # 5.8. 크론잡
+
+디플로이먼트와 레플리카셋의 관계처럼 크론잡이 잡을 관리하고 잡이 파드를 관리하는 구조
+
+## 5.8.1. 크론잡 생성
+
+```yaml
+apiVersion: batch/v1 # version check (v1beta1)
+kind: CronJob
+metadata:
+  name: sample-cronjob
+  namespace: default
+spec:
+  schedule: "*/1 * * * *"
+  concurrencyPolicy: Allow
+  startingDeadlineSeconds: 30
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  suspend: false
+  jobTemplate:
+    spec:
+      completions: 1
+      parallelism: 1
+      backoffLimit: 0
+      template:
+        spec:
+          containers:
+            - name: tools-container
+              image: amsy810/random-exit:v2.0
+          restartPolicy: Never
+```
+
+![alt text](image-26.png)
+
+> 스케줄링 설정 시간이 되면 잡 생성됨
+> ![alt text](image-27.png)
+
+## 5.8.2. 크론잡 일시정지
+
+> suspend=true
+> ![alt text](image-28.png)
+
+## 5.8.3. 임의의 시점에 크론잡 실행
+
+- 크론잡으로 잡을 생성 가능
+
+```shell
+kubectl create job sample-job --from cronjob/sample-cronjob
+```
+
+## 5.8.4. 동시 실행 제어
+
+- 스케줄링 시간 간격 내에 이전 잡이 정상 종료되지 못한 경우
+
+| spec.concurrencyPolicy | policy                                                  |
+| ---------------------- | ------------------------------------------------------- |
+| Allow                  | 동시 실행 제한 없음                                     |
+| Forbid                 | 이전 잡이 종료되지 않았을 경우 다음 잡은 실행 하지 않음 |
+| Replace                | 이전 잡을 삭제하고 다음 잡 실행                         |
+
+## 5.8.5. spec parameter
+
+`startingDeadlineSeconds`
+
+- 실행 데드라인
+- 설정한 값 내에 잡이 생성되지 않으면 그 이후에는 실행하지 않음
+  `successfulJobsHistoryLimit`
+- 성공한 잡을 저장하는 개수
+- 성공한 잡들을 설정 개수까지만 삭제하지 않고 남겨둠
+  - (잡은 원래 정상종료 이후에도 삭제되지 않고 남아있음)
+  - 로그도 남아있는 파드에 한해서만 확인 가능
+    `failedJobsHistoryLimit`
+- 실패한 잡을 저장하는 개수
+
+## 5.8.7. 매니패스트를 사용하지 않고 크론잡 생성
+
+```shell
+kubectl create cronjob sample-cronjob-by-cli \
+--image amsy810/random-exit:v2.0 \
+--schedule "*/1 * * * *" \
+--restart Never
+```
