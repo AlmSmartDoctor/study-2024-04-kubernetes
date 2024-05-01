@@ -1,2 +1,2 @@
-<img src="busybox1" />
-<img src="busybox2" />
+<img src="busybox1.PNG" />
+<img src="busybox2.png" />
