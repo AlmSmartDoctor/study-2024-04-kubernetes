@@ -1,7 +1,3 @@
-### #1
-
----
-
 > 임의로 잘못된 이미지 버전을 사용해(nginx:1.19.19) Nginx 파드를 배포합니다
 
 <img src="images/error-pod.png" width="600" height="100"/>
