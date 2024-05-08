@@ -1,6 +1,6 @@
-<img src="./image1" />
-<img src="./image2" />
-<img src="./image3" />
-<img src="./image4" />
-<img src="./image5" />
-<img src="./image6" />
+<img src="./image1.PNG" />
+<img src="./image2.PNG" />
+<img src="./image3.PNG" />
+<img src="./image4.PNG" />
+<img src="./image5.PNG" />
+<img src="./image6.PNG" />
