@@ -29,8 +29,5 @@
 - vote에 LoadBalancer
   ![Voting App Vote](./images/voting-app-vote.png)
 
-- result에 LoadBalancer
-  ![Voting App Result](./images/voting-app-result.png)
-
 - 부하분산
   ![Voting App LoadBalancer](./images/voting-app-loadbalancer-2.png)
