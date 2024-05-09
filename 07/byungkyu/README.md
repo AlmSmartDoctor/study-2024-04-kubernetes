@@ -16,3 +16,8 @@
 # 4. scaling
 
 ![](images/20240509101735.png)
+
+# 5. LoadBalancer check
+
+![](images/20240509110702.png)
+20개의 요청이 11개 6개 4개로 분산(?)이 되고 있다.
