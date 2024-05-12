@@ -13,8 +13,7 @@
 3. [6.3] ClusterIP 서비스
 4. [6.4] ExternalIP 서비스
 5. [6.5] NodePort 서비스
-6. [6.6] LoadBalancer 서비스
-   ...
+6. [6.6] LoadBalancer 서비스s
 
 <br>
 
