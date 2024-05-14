@@ -1,0 +1,5 @@
+![image](https://github.com/AlmSmartDoctor/study-2024-04-kubernetes/assets/66120479/0a68b8f5-83d0-435d-9250-5f18ec1d4979)
+![image](https://github.com/AlmSmartDoctor/study-2024-04-kubernetes/assets/66120479/b673f36a-21cf-461b-9a2b-9bfb56203d2f)
+![image](https://github.com/AlmSmartDoctor/study-2024-04-kubernetes/assets/66120479/19ab1bba-f121-4692-9e6d-b5caa1e0c9cc)
+![image](https://github.com/AlmSmartDoctor/study-2024-04-kubernetes/assets/66120479/787974ff-438f-4069-9970-120808b4fcaf)
+![image](https://github.com/AlmSmartDoctor/study-2024-04-kubernetes/assets/66120479/29026f79-a418-4f71-9361-a31cf669a4fa)
