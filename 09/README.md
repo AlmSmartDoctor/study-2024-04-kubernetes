@@ -1,7 +1,7 @@
 # Chapter 7. 컨피그 & 스토리지 API ( ~ 7.4 컨피그맵)
 
 > 발표일 `24.05.16`
-> 
+>
 > 발표자 `공병규`
 
 ## 7.1 개요
@@ -23,11 +23,11 @@ metadata:
     app: sample-app
 spec:
   containers:
-  - name: nginx-container
-    image: nginx:1.16
-    env:
-    - name: MAX_CONNECTION
-      value: "100"
+    - name: nginx-container
+      image: nginx:1.16
+      env:
+        - name: MAX_CONNECTION
+          value: '100'
 ```
 
 env 필드를 통해 개별 컨테이너에 대해 환경변수 설정 가능
@@ -58,15 +58,15 @@ metadata:
   name: frontend
 spec:
   containers:
-  - name: app
-    image: images.my-company.example/app:v4
-    resources:
-      requests:
-        memory: "64Mi"
-        cpu: "250m"
-      limits:
-        memory: "128Mi"
-        cpu: "500m"
+    - name: app
+      image: images.my-company.example/app:v4
+      resources:
+        requests:
+          memory: '64Mi'
+          cpu: '250m'
+        limits:
+          memory: '128Mi'
+          cpu: '500m'
 ```
 
 ```yaml
@@ -103,13 +103,13 @@ metadata:
     app: sample-app
 spec:
   containers:
-  - name: nginx-container
-    image: nginx:1.16
-    command: ["echo"]
-    args: ["$(TESTENV)", "$(HOSTNAME)"]
-    env:
-    - name: TESTENV
-      value: "100"
+    - name: nginx-container
+      image: nginx:1.16
+      command: ['echo']
+      args: ['$(TESTENV)', '$(HOSTNAME)']
+      env:
+        - name: TESTENV
+          value: '100'
 ```
 
 > 100 $(HOSTNAME)
@@ -123,15 +123,15 @@ spec:
 ## 7.3 시크릿
 
 기밀 정보를 컨테이너로 전달하는 방법
+
 - 도커 빌드 시 컨테이너 이미지에 추가
-    > 보안상 좋지 않음, 기밀 정보 바뀔 때마다 빌드해야함
+  > 보안상 좋지 않음, 기밀 정보 바뀔 때마다 빌드해야함
 - 매니페스트를 통해 전달
-    > 보안 이슈, 여러 파드가 같은 기밀 정보를 사용할 경우 관리 어려움
+  > 보안 이슈, 여러 파드가 같은 기밀 정보를 사용할 경우 관리 어려움
 
 물론 시크릿을 정의하는 매니페스트도 base64로만 인코딩되어 있어 깃헙 등에 업로드하긴 힘듦 (암호화 솔루션은 13장에서 등장)
 
 ### 시크릿 분류
-
 
 | 종류                                | 개요                        |
 | ----------------------------------- | --------------------------- |
@@ -143,7 +143,6 @@ spec:
 | kubernetes.io/service-account-token | 서비스 어카운트 토큰용      |
 | bootstrap.kubernetes.io/token       | Bootstrap 토큰용            |
 
-
 일반적인 사용자명과 패스워드 같은 인증 정보는 스키마가 없는 Opaque타입 이용
 
 이외의 타입들은 정해진 스키마가 있음 (e.g. `tls.crt` & `tls.key`)
@@ -153,6 +152,8 @@ spec:
 하나의 시크릿에 여러개의 키-밸류 쌍 저장 가능
 
 #### A. kubectl로 파일에서 값을 참조
+
+각 키마다 파일을 참조함
 
 ```shell
 $ kubectl create secret generic --save-config sample-db-auth \
@@ -168,9 +169,31 @@ $ kubectl get secrets sample-db-auth -o json | jq .data
 ```
 
 #### B. kubectl로 envfile에서 값을 참조
+
 도커에서 --env-file 옵션을 이용하여 컨테이너를 가동한 경우에 이 방법을 이용해서 이관 가능
 
+```yaml
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: elasticsearch:7.9.3
+    container_name: product_system_elasticsearch_7.9
+    restart: always
+    ports:
+      - '9200:9200'
+    environment:
+      - 'discovery.type=single-node'
+    network_mode: bridge
+```
+
+```shell
+$ kubectl create secret generic --save-config sample-db-auth \
+--from-env-file ./env-secret.txt
+```
+
 #### C. kubectl로 직접 값을 전달
+
 ```shell
 $ kubectl create secret generic --save-config sample-db-auth \
 --from-literal=username=root --from-literal=password=1234
@@ -188,6 +211,7 @@ data:
   username: cm9vdA== # root
   password: cm9vdHBhc3N3b3Jk # rootpassword
 ```
+
 base64로 인코딩된 값을 넣어야함(`stringData`를 쓰면 그냥 값 넣을 수 있음)
 
 ### 7.3.3 TLS 타입 시크릿
@@ -195,10 +219,10 @@ base64로 인코딩된 값을 넣어야함(`stringData`를 쓰면 그냥 값 넣
 ```yaml
 $ kubectl create secret tls --save-config tls-sample --key ~/tls.key --cert ~/tls.crt
 ```
+
 ## 7.3.7 시크릿 사용
 
 #### A. 환경변수로 전달
-
 
 `secretKeyRef`를 이용해서 시크릿의 특정 키를 불러올 수 있다
 
@@ -209,16 +233,18 @@ metadata:
   name: sample-secret-single-env
 spec:
   containers:
-  - name: secret-container
-    image: nginx:1.16
-    env:
-    - name: DB_USERNAME
-      valueFrom:
-        secretKeyRef:
-          name: sample-db-auth
-          key: username
+    - name: secret-container
+      image: nginx:1.16
+      env:
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: sample-db-auth
+              key: username
 ```
+
 시크릿 전체 불러오기
+
 ```yaml
 (생략)
     envFrom:
@@ -248,20 +274,28 @@ metadata:
   name: sample-secret-single-volume
 spec:
   containers:
-  - name: secret-container
-    image: nginx:1.16
-    volumeMounts:
-    - name: config-volume
-      mountPath: /config
+    - name: secret-container
+      image: nginx:1.16
+      volumeMounts:
+        - name: config-volume
+          mountPath: /config
   volumes:
-  - name: config-volume
-    secret:
-      secretName: sample-db-auth
-      items:
-      - key: username
-        path: username.txt
+    - name: config-volume
+      secret:
+        secretName: sample-db-auth
+        items:
+          - key: username
+            path: username.txt
 ```
+
 지정한 path의 파일에 저장됨
+
+```yaml
+  volumes:
+    - name: config-volume
+      secret:
+        secretName: sample-db-auth
+```
 
 > 동적 마운트된 시크릿에서는 일정 기간마다 `kube-apiserver`로 변경을 확인하고 파일을 업데이트함 (기본 60초마다)
 
@@ -294,9 +328,9 @@ kind: ConfigMap
 metadata:
   name: sample-configmap
 data:
-  thread: "16"
-  connection.max: "100"
-  connection.min: "10"
+  thread: '16'
+  connection.max: '100'
+  connection.min: '10'
   sample.properties: |
     property.1=value-1
     property.2=value-2
@@ -323,20 +357,20 @@ metadata:
   name: sample-configmap-single-env
 spec:
   containers:
-  - name: configmap-container
-    image: nginx:1.16
-    env:
-    - name: CONNECTION_MAX
-      valueFrom:
-        configMapKeyRef:
-          name: sample-configmap
-          key: connection.max
+    - name: configmap-container
+      image: nginx:1.16
+      env:
+        - name: CONNECTION_MAX
+          valueFrom:
+            configMapKeyRef:
+              name: sample-configmap
+              key: connection.max
 ```
 
 ```yaml
-    envFrom:
-    - configMapRef:
-      name: sample-configmap
+envFrom:
+  - configMapRef:
+    name: sample-configmap
 ```
 
 #### 볼륨으로 마운트
@@ -348,19 +382,21 @@ metadata:
   name: sample-configmap-single-volume
 spec:
   containers:
-  - name: configmap-container
-    image: nginx:1.16
-    volumeMounts:
-    - name: config-volume
-      mountPath: /config
+    - name: configmap-container
+      image: nginx:1.16
+      volumeMounts:
+        - name: config-volume
+          mountPath: /config
   volumes:
-  - name: config-volume
-    configMap:
-      name: sample-configmap
-      items:
-      - key: nginx.conf
-        path: nginx-sample.conf
+    - name: config-volume
+      configMap:
+        name: sample-configmap
+        items:
+          - key: nginx.conf
+            path: nginx-sample.conf
 ```
+
+> 시크릿처럼 동적 업데이트 지원
 
 ### 7.4.3 시크릿과 컨피그맵의 공통 주제
 
@@ -377,20 +413,20 @@ metadata:
   name: sample-configmap-scripts
 spec:
   containers:
-  - name: configmap-container
-    image: nginx:1.16
-    command: ["/config/test.sh"]
-    volumeMounts:
-    - name: config-volume
-      mountPath: /config
+    - name: configmap-container
+      image: nginx:1.16
+      command: ['/config/test.sh']
+      volumeMounts:
+        - name: config-volume
+          mountPath: /config
   volumes:
-  - name: config-volume
-    configMap:
-      name: sample-configmap
-      items:
-      - key: test.sh
-        path: test.sh
-        mode: 493 # 8진수 0755
+    - name: config-volume
+      configMap:
+        name: sample-configmap
+        items:
+          - key: test.sh
+            path: test.sh
+            mode: 493 # 8진수 0755
 ```
 
 ```yaml
@@ -400,14 +436,14 @@ metadata:
   name: sample-secret-secure
 spec:
   containers:
-  - name: secret-container
-    image: nginx:1.16
-    volumeMounts:
-    - name: config-volume
-      mountPath: /config
+    - name: secret-container
+      image: nginx:1.16
+      volumeMounts:
+        - name: config-volume
+          mountPath: /config
   volumes:
-  - name: config-volume
-    secret:
-      secretName: sample-db-auth
-      defaultMode: 256
+    - name: config-volume
+      secret:
+        secretName: sample-db-auth
+        defaultMode: 256
 ```
