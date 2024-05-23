@@ -417,6 +417,11 @@ spec:
 - VolumeSnapshotClass: 사양 (StorageClass)
 - VolumeSnapshotContent: 실체 (PV)
 
+---
+
+- CSI 플러그인 사용이 전제됨
+- CSI 드라이버가 스냅샷 기능을 구현하고 있어야 함
+
 ### 스테이트풀셋에서 영구 볼륨 클레임(volumeClaimTemplate)
 
 ```yaml
