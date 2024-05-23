@@ -228,8 +228,6 @@ spec:
   - 단일 노드에서 Read/Write 가능
 - ReadOnlyMany(ROX)
   - 여러 노드에서 Read 가능
-  - 하나라도 쓰기 요청이 있는 파드가 있다면 다른 노드에서 마운트 불가능
-  - 영구 볼륨 클레임 지정 시 readOnly로 지정
 - ReadWriteMany(RWX)
   - 여러 노드에서 Read/Write 가능
 
