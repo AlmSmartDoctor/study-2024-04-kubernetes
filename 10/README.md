@@ -253,6 +253,15 @@ spec:
 
 > 동적 스토리지 프로비저닝을 관리하기 위한 설정 및 옵션을 제공하는 객체
 
+```yaml
+# 동적 영구 볼륨 프로비저닝 x 스토리지클래스 (sample-storageclass-manual.yaml)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: manual
+provisioner: kubernetes.io/no-provisioner
+```
+
 ## 7.8 영구 볼륨 클레임(PVC)
 
 > 영구 볼륨을 요청하는 리소스
@@ -302,7 +311,7 @@ spec:
     - name: nginx-container
       image: nginx:1.16
       volumeMounts:
-        - mountPath: "/usr/share/nginx/html"
+        - mountPath: '/usr/share/nginx/html'
           name: nginx-pvc
   volumes:
     - name: nginx-pvc
@@ -482,20 +491,20 @@ spec:
   containers:
     - name: container-a
       image: alpine:3.7
-      command: ["sh", "-c", "touch /data/a.txt; sleep 86400"]
+      command: ['sh', '-c', 'touch /data/a.txt; sleep 86400']
       volumeMounts:
         - mountPath: /data
           name: main-volume
     - name: container-b
       image: alpine:3.7
-      command: ["sh", "-c", "touch /data/b.txt; sleep 86400"]
+      command: ['sh', '-c', 'touch /data/b.txt; sleep 86400']
       volumeMounts:
         - mountPath: /data
           name: main-volume
           subPath: path1
     - name: container-c
       image: alpine:3.7
-      command: ["sh", "-c", "touch /data/c.txt; sleep 86400"]
+      command: ['sh', '-c', 'touch /data/c.txt; sleep 86400']
       volumeMounts:
         - mountPath: /data
           name: main-volume
