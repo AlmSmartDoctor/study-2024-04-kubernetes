@@ -122,7 +122,7 @@ spec:
 ### 7.6.3 downwardAPI
 
 - 파드 정보 등을 파일로 배치하기 위한 플러그인
-- 환경 변수 filedRef와 resourceFiledRef의 사용 방법과 동일
+- 환경 변수 fieldRef와 resourceFieldRef의 사용 방법과 동일
 
 ```yaml
 # downwardAPI 볼륨 마운트 (sample-downward-api.yaml)
