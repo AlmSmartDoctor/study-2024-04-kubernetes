@@ -2,7 +2,7 @@
 
 ## 파드 보안 정책: PodSecurityPolicy
 - 보안 정책을 설정해서 클러스터에 제한을 둔다
-  - 파드에 대한 제한
+  - 파드에 대한 제한사항 설정
   - 보안 컨텍스트들에 대한 기본값 설정
 - 기본적으로 비활성화 되어있음
 - 파드 보안정책 활성화: ```$ gcloud beta container clusters update k8s --enabel-pod-security-policy --zone asia-northeast3-a```
