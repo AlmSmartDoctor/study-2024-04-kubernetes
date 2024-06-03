@@ -5,6 +5,7 @@
 - 보안 정책을 설정해서 클러스터에 제한을 둔다
   - 파드에 대한 제한사항 설정
   - 보안 컨텍스트들에 대한 기본값 설정
+  - https://k8s-dev-ko.netlify.app/docs/concepts/policy/pod-security-policy/#what-is-a-pod-security-policy 여기서 보안 정책 항목들 목록 확인 가능
 - 기본적으로 비활성화 되어있음
 - 파드 보안정책 활성화: `$ gcloud beta container clusters update k8s --enabel-pod-security-policy --zone asia-northeast3-a`
 - 화이트리스트 방식: 허용되는것들을 명시해 줘야함
@@ -222,7 +223,195 @@ spec:
     - 생성하는 객체의 설정 수정 등
   - Validating Admission Controller: 해당 요청을 허가할지 판단함
     - 파드 정책에 어긋나지는 않는가?
+- `/etc/kubernetes/manifests/kube-apiserver.yaml` 파일의 `--enable-admission-plugins` 플래그에 사용할 어드미션 컨트롤 종류를 추가한다
+
+```
+spec:
+  containers:
+  - name: kube-apiserver
+    image: k8s.gcr.io/kube-apiserver:v1.19.0
+    command:
+    - kube-apiserver
+    - --enable-admission-plugins=NodeRestriction,ResourceQuota,PodPreset
+		# 이하 생략
+```
 
 ## 파드 프리셋
 
+- 어드미션 컨트롤러의 한 종류
+- 사용자가 파드 추가를 위한 요청을 보낼 때 생성되는 파드의 설정값을 수정
+  - 특정 파드에 환경 변수 추가
+  - /var/log 영역에 영구 볼륨 할당
+
+```
+# sample-podpreset.yaml
+apiVersion: settings.k8s.io/v1alpha1
+kind: PodPreset
+metadata:
+  name: sample-podpreset
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: podpreset
+  env:
+    - name: SAMPLE_ENV
+      value: "SAMPLE_VALUE"
+  volumeMounts:
+    - mountPath: /cache
+      name: cache-volume
+  volumes:
+    - name: cache-volume
+      emptyDir: {}
+```
+
+- 파드 프리셋 활성화: `$ kubectl apply -f sample-podpreset.yaml`
+- 파드 프리셋에 명시된 `spec.selector.matchLabels`와 생성되는 파드가 일치하면 파드 프리셋 적용
+  - 위의 예시에서는 환경변수에 `SAMPLE_ENV=SAMPLE_VALUE`가 추가되고 `cache-volume` 볼륨이 마운트된다
+- API 요청에 담겨있는 파드의 정보와 파드 프리셋의 설정이 하나라도 충돌하면 파드 프리셋 전체가 적용 되지 않음
+  - ex) 파드의 SAMPLE_ENV 환경변수 값에 다른 값이 들어있는 경우
+  - 이를 최대한 방지하기 위해서 파드 프리셋을 최대한 잘게 분리하는것이 좋다
+- 파드를 파드 프리셋 실행 대상에서 제외하기: `podpreset.admission.kubernetes.io/exclude: true`
+
+  ```
+  apiVersion: v1
+  kind: Pod
+  metadata:
+  	name: sample-preset-pod
+  	annotations:
+  		podpreset.admission.kubernetes.io/exclude: "true"
+  	labels:
+  		app: podpreset
+  spec:
+  	containers:
+  		- name: nginx-container
+  			image: nginx:1.12
+  ```
+
 ## 시크릿 리소스 암호화
+
+- 쿠버네티스 시크릿을 데이터 저장소에 보관할 때 강한 암호화 필요
+- 기본적으로 base64 encoding밖에 안되어있어 이를 업로드하려면 별도의 추가적인 암호화 필요
+
+### kubesec
+
+- Google Cloud KMS, GnuPG 등을 사용해 암호화
+- 파일의 데이터 구조는 유지하고 값만 암호화 해서 가독성 좋음
+- kubesec 설치:
+  ```
+  $ sudo curl -o /usr/local/bin/kubesec -sL \ https://github.com/shyiko/kubesec/releases/download/0.9.2/kubesec-0.9.2-darwin-amd64
+  $ sudo chmod +x /usr/local/bin/kubesec
+  ```
+- Google Cloud KMS(Key Management Service)
+  - GCP에서 제공하는 관리형 서비스
+  - GCP 콘솔에서 Google Cloud KMS를 활성화해야 사용 가능
+  - gcloud 인증 필요: `$ gcloud auth application-default login`
+  - 인증 정보는 `~/.config/gcloud/` 안에 저장됨
+  - keyrings 생성: `$ gcloud kms keyrings create sample-keyring --location global`
+  - 키 생성:
+    ```
+    $ gcloud kms keys create --purpose encryption \
+    --keyring sample-keyring --location global kubesec-key
+    ```
+  - 생성된 키 확인: `$ gcloud kms key list --keyring sample-keyring --location global`
+  - `projects/{프로젝트명}/locations/global/keyRings/sample-keyring/cryptoKeys/kubesec-key`에 저장됨
+  - 암호화:
+    ```
+    $ kubesec encrypt -i \
+    --key=projects/{프로젝트명}/locations/global/keyRings/sample-keyring/cryptoKeys/kubesec-key \
+    sample-db-auth.yaml
+    ```
+  - 암호화된 결과물에 사용된 키의 정보가 있어서 복호화 시에는 키를 따로 지정할 필요가 없음: `$ kubesec decrypt -i {암호화된 시크릿 yaml 파일}`
+- GunPG
+  - gpg 명령어를 사용함: `$ brew install gpg`
+  - keyring 생성: `$ gpg --gen-key`
+  - 결과물로 public 키가 생성됨
+  - 암호화:
+    ```
+    $ kubesec encrypt -i \
+    --key=pgp:{퍼블릭 키} \
+    sample-db-auth.yaml
+    ```
+  - 복호화는 Google Cloud KMS와 동일
+- 여러개의 키 사용
+  - ```
+    	$ kubesec encrypt -i \
+    	--key=pgp:{퍼블릭 키} \
+    	--key=projects/{프로젝트명}/locations/global/keyRings/sample-keyring/cryptoKeys/kubesec-key \
+    	sample-db-auth.yaml
+    ```
+  - 사용자가 이 중 하나의 키라도 사용 가능하다면 해당 파일을 복호화 가능
+  - 여러명의 사용자가 동시에 사용해야 하고, 키를 공유하고 싶지는 않을 때 유용
+
+### SealedSecret
+
+<img src="./images/sealedsecret.png" />
+
+- kubeseal 설치: `$ brew install kubeseal`
+- SealedSecret 설치: `$ kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.12.4/controller.yaml`
+- 설치시 비밀키 공개키 쌍이 생성된다
+- ```
+  	$ kubectl get secret -n kube-system \
+  	-L sealedsecrets.bitnami.com/sealed-secrets-key \
+  	-l sealedsecrets.bitnami.com/sealed-secrets-key
+  ```
+- kubeseal 명령어로 공개키를 사용해서 쿠버네티스 시크릿 리소스를 암호화해서 SealedSecret 리소스를 생성: `$ kubeseal -o yaml < sample-db-auth.yaml > sealed-sample-db-auth.yaml`
+- 해당 SealedSecret 리소스를 쿠버네티스에 등록시 쿠버네티스 안의 SealedSecret 컨트롤러가 비밀키를 사용해서 리소스를 복호화해 시크릿 리소스를 생성한다
+- 복호화 할때 사용되는 비밀키가 유출되었을 때는 새로운 키를 생성해야 함
+  - 새로운 공개키로 SealedSecret을 재암호화: `kubeseal --re-encrypt < sealed-sample-db-auth.yaml > resealed-smaple-db-auth.yaml`
+  - 새로 비밀키/공개키 쌍을 생성해도 이미 시크릿이 유출되었을 수 있으니 시크릿 리소스도 변경 필요
+
+### ExternalSecret
+
+- `AWS Secrets Manager`, `HashiCorp Vault`, `GCP Secret Manager` 등의 외부 시크릿 매니저 시스템을 사용한다
+- 시크릿 리소스를 암호화 해서 쿠버네티스에 넣는것이 아니라 외부 시크릿 매니저에 key로 등록한다
+- 해당 시크릿 리소스에 접속할 수 있는 권한을 쿠버네티스 서비스 어카운트에 부여한다
+- 해당 키를 데이터로 사용하는 ExternalSecret 리소스를 생성한다
+- ExternalSecret 리소스를 쿠버네티스에 업로드해서 해당 리소스가 명시하는 키를 바탕으로 ExternalSecret 컨트롤러가 외부 시크릿 매니저에서 시크릿 리소스를 가져온다
+
+- 예시: GCP 시크릿 매니저
+
+  - GCP 서비스 어카운트와 쿠버네티스 서비스 어카운트를 연결:
+    - `gcloud iam service-accounts create external-secret-gsa`
+    - ```
+      	gcloud iam service-accounts add-iam-policy-binding \
+      	--role roles/iam.workloadIdentityUser \
+      	--member "serviceAccount:${PROJECT}.svc.id.goog[default/sample-es-kubernetes-external-secrets]" \ external-secrets-gsa@${PROJECT}.iam.gserviceaccount.com
+      ```
+  - ExternalSecret 설치:
+    - `helm repo add external-secrets https://external-secrets.github.io/kubernetes-external-secrets/`
+    - ```
+      helm install sample-es \
+      external-secrets/kubernetes-external-secrets \
+      --version 4.0.0 \
+      -f values.yaml
+      ```
+  - GCP Secret Manager에 기밀 등록:
+    - ```
+      gcloud secrets create sample-gsm-key \
+      --replication-policy automatic \
+      --data-file ./data.txt
+      ```
+  - `sample-gsm-key`에 GCP 서비스 어카운트가 접근할 수 있도록 권한 부여:
+    - ```
+      gcloud beta secrets add-iam-policy-binding --projet ${PROCJECT} \
+      --role roles/secretmanager.secretAccessor \
+      --member serviceAccount:external-secret-gsa@${PROJECT}.iam.gserviceaccount.com \
+      sample-gsm-key
+      ```
+  - ExternalSecret 리소스:
+    ```
+    	apiVersion: kubernetes-client.io/v1
+    	kind: ExternalSecret
+    	metadata:
+    		name: sample-external-secret
+    	spec:
+    		backendType: gcpSecretsManager
+    		projectId: _PROJECT_
+    		data:
+    		- key: sample-gsm-key
+    			name: sample-k8s-key
+    			version: latest
+    ```
+  - ExternalSecret 리소스 생성: `kubectl apply -f sample-external-secret.yaml`
+  - 생성된 시크릿 확인: `kubectl get externalsecrets sample-external-secret -o yaml`
