@@ -1,4 +1,4 @@
-# 유연한 스케줄링 Part 1
+# 유연한 스케줄링 Part 1 (12장)
 
 ## 1. 스케줄링 개요
 
@@ -35,7 +35,7 @@ $ k label node {노드이름} {라벨이름}={값}
 ## 4. nodeSelector
 
 - 단순한 노드 어피니티만 필요할 때 사용
-
+- equality based로 단일 조건만 지정 가능
 - 5장에서 다뤘음
 
 ```yaml
@@ -137,6 +137,8 @@ requiredDuringSchedulingIgnoredDuringExecution:
 
 ## 8. 인터파드 어피니티
 
+- 서로 상호작용하는 파드들을 같은 도메인에 배치해서 latency를 줄일 때
+
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -171,7 +173,7 @@ spec:
 - podAffinity 키워드를 이용해 정의
 - nodeAffinity와 마찬가지로 필수조건, 우선조건이 존재
 - labelSelector로 파드를 묘사
-- 그 아래 topologyKey로 묘사된 파드와 같은 값을 가질 라벨을 지정
+- 조건을 만족하는 파드가 배치된 노드의 topologyKey와 동일한 값을 갖는 노드에 배치됨
 
 - 위 예제에서는 라벨 sample-app의 파드와 반드시 같은 zone에 배치되고, 웬만해서는 같은 노드에 배치하는 방향으로 스케줄링됨
 
@@ -179,6 +181,8 @@ spec:
 
 ## 9. 인터파드 안티어피니티
 
+- 파드를 분산시키거나 보안상, 성능상의 이유로 같은 노드에 있으면 안되는 파드 쌍이 있을 때
+  
 - 접두사 `Not`을 붙이는 노드 안티어피니티와 다르게 `podAntiAffinity` 항목이 존재
   
 ```yaml
