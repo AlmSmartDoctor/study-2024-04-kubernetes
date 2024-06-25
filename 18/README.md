@@ -152,8 +152,8 @@ spec:
 
 | Effect     | Key                            | 개요                                             |
 | ---------- | ------------------------------ | ------------------------------------------------ |
-| NoSchedule | node.kubernetes.io/not-ready   | 노드 상태가 Ready가 아닌 상태(NotReady)          |
-| NoSchedule | node.kubernetes.io/unreachable | 노드와의 네트워크 접속이 되지 않는 경우(Unknown) |
+| NoExecute | node.kubernetes.io/not-ready   | 노드 상태가 Ready가 아닌 상태(NotReady)          |
+| NoExecute | node.kubernetes.io/unreachable | 노드와의 네트워크 접속이 되지 않는 경우(Unknown) |
 
 ##### 노드에 장애가 발생해도 파드를 계속 기동하고 싶은 경우
 
@@ -175,18 +175,18 @@ tolerations:
 
 | Effect     | Key                                    | 개요                                      |
 | ---------- | -------------------------------------- | ----------------------------------------- |
-| NoSchedule | node.kubernetes.io/memory-pressure     | 노드에 메모리 부족                        |
-| NoSchedule | node.kubernetes.io/disk-pressure       | 노드에 디스크 부족                        |
-| NoSchedule | node.kubernetes.io/pid-pressure        | 노드에 PID 고갈                           |
-| NoSchedule | node.kubernetes.io/network-unavailable | 노드의 네트워크가 연결되지 않음           |
-| NoSchedule | node.kubernetes.io/unschedulable       | kubectl cordon에 의해 스케줄링에서 제외됨 |
+| NoExecute | node.kubernetes.io/memory-pressure     | 노드에 메모리 부족                        |
+| NoExecute | node.kubernetes.io/disk-pressure       | 노드에 디스크 부족                        |
+| NoExecute | node.kubernetes.io/pid-pressure        | 노드에 PID 고갈                           |
+| NoExecute | node.kubernetes.io/network-unavailable | 노드의 네트워크가 연결되지 않음           |
+| NoExecute | node.kubernetes.io/unschedulable       | kubectl cordon에 의해 스케줄링에서 제외됨 |
 
 ##### 클라우드 환경에서 노드가 생성되고 삭제될 때
 
 | Effect     | Key                                            | 개요                                                                  |
 | ---------- | ---------------------------------------------- | --------------------------------------------------------------------- |
-| NoSchedule | node.cloudprovider.kubernetes.io/uninitialized | 클라우드 프로바이더에 의해 노드를 처음 기동할 때 초기화되는 것을 대기 |
-| NoSchedule | node.cloudprovider.kubernetes.io/shutdown      | 클라우드 프로바이더에 의해 노드를 정지할 때 전처리                    |
+| NoExecute | node.cloudprovider.kubernetes.io/uninitialized | 클라우드 프로바이더에 의해 노드를 처음 기동할 때 초기화되는 것을 대기 |
+| NoExecute | node.cloudprovider.kubernetes.io/shutdown      | 클라우드 프로바이더에 의해 노드를 정지할 때 전처리                    |
 
 ### 13. PriorityClass를 이용한 파드 우선순위와 축출
 
