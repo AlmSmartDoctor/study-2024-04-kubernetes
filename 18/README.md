@@ -87,6 +87,7 @@ topologySpreadConstraints:
   - NoSchedule: 스케줄링하지 않음(이미 스케줄링된 파드는 유지)
   - NoExecute: 실행을 허가하지 않음(이미 스케줄링된 파드는 정지)
 - kubectl taint 명령어를 사용
+  - kubectl taint nodes <node-name> <key>=<value>:<effect>
 
 #### 12.2 톨러레이션을 지정한 파드 기동
 
