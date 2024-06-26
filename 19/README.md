@@ -1,4 +1,4 @@
-![CamScanner 06-27-2024 02 24(1)_2](https://github.com/AlmSmartDoctor/study-2024-04-kubernetes/assets/66120479/0bcfa7a5-ed1f-4eac-85cb-0ed946b28c06)# Chapter 17. 쿠버네티스 환경에서의 CI/CD
+# Chapter 17. 쿠버네티스 환경에서의 CI/CD
 
 > 발표일 `24.06.27`
 >
